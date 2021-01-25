@@ -167,7 +167,7 @@ class Game:
 
 def main() -> None:
     window = Game()
-    while window.start_activity:
+    while window.start_activity():
         window.main_activity()
 
 
