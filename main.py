@@ -1,7 +1,8 @@
 import os
 import pygame
+from random import randrange
 from globals import load_image
-from units import Player, BaseEnemy
+from units import Player
 
 
 pygame.init()
@@ -38,7 +39,7 @@ class Score:
         self.count += number
 
     def draw(self) -> None:
-        text = Score.font.render(f"SCORE: {self.count}", True, "#FFD700")
+        text = Score.font.render(f"SCORE: {self.count}", True, pygame.Color("#FFD700"))
         self.screen.blit(text, (self.x, self.y))
 
 
@@ -54,16 +55,39 @@ class Button:
         self.screen.blit(self.image, (self.x, self.y))
 
 
-class Game:
-    FPS = 240
+class Background:
+    VELOCITY = 500
     SIZE = WIDTH, HEIGHT = 1000, 1000
-    SW_FONT_MAIN = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 80) # кастомный шрифт
-    SCOREEVENT = pygame.USEREVENT + 1
+
+    def __init__(self, screen: pygame.surface.Surface, static: bool = True):
+        self.screen = screen
+        self.image = load_image("background.png", self.screen)
+        self.static = static
+        self.y = 0
+
+    def set_static(self, state: bool) -> None:
+        self.static = state
+
+    def draw(self, time: int = None) -> None:
+        if self.static:
+            self.screen.blit(self.image, (0, 0))
+        else:
+            dy = round(Background.VELOCITY * time / 1000)
+            self.y = (self.y + dy) % (Background.HEIGHT + 1)
+            print("you fucked out")
+            self.screen.blit(self.image, (0, -(Background.HEIGHT - self.y)))
+            self.screen.blit(self.image, (0, self.y))
+
+
+class Game:
+    FPS = 120
+    SIZE = WIDTH, HEIGHT = 1000, 1000
+    SW_FONT_MAIN = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 80)  # кастомный шрифт
+    SCORE_EVENT = pygame.USEREVENT + 1
 
     def __init__(self):
         self.screen = pygame.display.set_mode(Game.SIZE)
-        self.bg_image = load_image("background.png", self.screen)
-        self.screen.blit(self.bg_image, (0, 0))
+        self.background = Background(self.screen)
         self.clock = pygame.time.Clock()
 
     def start_activity(self) -> bool:
@@ -73,8 +97,7 @@ class Game:
         # создание кнопок start и exit
         start_button = Button(400, 300, self.screen, "space_invaders_start.png")
         exit_button = Button(400, 425, self.screen, "space_invaders_exit.png")
-
-        text = Game.SW_FONT_MAIN.render("SPACE INVADERS 2.0", True, "#FFD700")
+        text = Game.SW_FONT_MAIN.render("SPACE INVADERS 2.0", True, pygame.Color("#FFD700"))
 
         while running:
             for event in pygame.event.get():
@@ -89,7 +112,7 @@ class Game:
                         running = False
 
             # инициализация главного меню
-            self.screen.blit(self.bg_image, (0, 0))
+            self.background.draw()
             self.screen.blit(text, (42, 100))
             start_button.draw()
             exit_button.draw()
@@ -97,17 +120,25 @@ class Game:
             self.clock.tick(Game.FPS)
             pygame.display.flip()
 
-        return start_game # возвращаем результат: True если нажата start, в ином случае False
+        return start_game  # возвращаем результат: True если нажата start, в ином случае False
 
     def main_activity(self) -> None:
+        def destroy():
+            self.background.set_static(True)
+            pygame.time.set_timer(Game.SCORE_EVENT, 0)
+
+            for item in all_sprites.sprites():
+                item.kill()
+
         running = True
-        pygame.time.set_timer(Game.SCOREEVENT, 500)
+        pygame.time.set_timer(Game.SCORE_EVENT, 90)
 
         all_sprites = pygame.sprite.Group()
         player_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
+        self.background.set_static(False)
         score = Score(self.screen)
         hp_bar = HealthBar(player, self.screen)
 
@@ -115,17 +146,18 @@ class Game:
             time = self.clock.tick(Game.FPS)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
+                    pygame.quit()
+                    exit(0)
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_q:
                     player.hp -= 1
                     print(player.get_health())
-                if event.type == Game.SCOREEVENT:
+                elif event.type == Game.SCORE_EVENT:
                     score.add(1)
 
-            player_group.update(time)
+            all_sprites.update(time)
 
-            self.screen.blit(self.bg_image, (0, 0))
-            player_group.draw(self.screen)
+            self.background.draw(time)
+            all_sprites.draw(self.screen)
 
             score.draw()
             hp_bar.draw()
@@ -135,7 +167,7 @@ class Game:
 
 def main() -> None:
     window = Game()
-    if window.start_activity() == True:
+    while window.start_activity:
         window.main_activity()
 
 
