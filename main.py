@@ -1,9 +1,8 @@
 import os
 import pygame
-from random import randrange
+from random import randrange, choice
 from globals import load_image
-from units import Player
-
+from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy
 
 pygame.init()
 
@@ -74,7 +73,6 @@ class Background:
         else:
             dy = round(Background.VELOCITY * time / 1000)
             self.y = (self.y + dy) % (Background.HEIGHT + 1)
-            print("you fucked out")
             self.screen.blit(self.image, (0, -(Background.HEIGHT - self.y)))
             self.screen.blit(self.image, (0, self.y))
 
@@ -84,6 +82,7 @@ class Game:
     SIZE = WIDTH, HEIGHT = 1000, 1000
     SW_FONT_MAIN = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 80)  # кастомный шрифт
     SCORE_EVENT = pygame.USEREVENT + 1
+    ENEMY_APPEAR_EVENT = pygame.USEREVENT + 2
 
     def __init__(self):
         self.screen = pygame.display.set_mode(Game.SIZE)
@@ -126,15 +125,17 @@ class Game:
         def destroy():
             self.background.set_static(True)
             pygame.time.set_timer(Game.SCORE_EVENT, 0)
-
+            pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 0)
             for item in all_sprites.sprites():
                 item.kill()
 
         running = True
         pygame.time.set_timer(Game.SCORE_EVENT, 90)
+        pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 750)
 
         all_sprites = pygame.sprite.Group()
         player_group = pygame.sprite.Group()
+        enemy_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
@@ -151,6 +152,17 @@ class Game:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_q:
                     player.hp -= 1
                     print(player.get_health())
+                elif event.type == Game.ENEMY_APPEAR_EVENT:
+                    mode = choice([1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
+                    if mode == 1:
+                        WeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                  self.screen, all_sprites, enemy_group)
+                    elif mode == 2:
+                        AltWeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                     self.screen, all_sprites, enemy_group)
+                    elif mode == 3:
+                        StrongEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                    self.screen, all_sprites, enemy_group)
                 elif event.type == Game.SCORE_EVENT:
                     score.add(1)
 
@@ -161,6 +173,11 @@ class Game:
 
             score.draw()
             hp_bar.draw()
+
+            if any(map(lambda x: pygame.sprite.collide_mask(player, x),
+                       enemy_group.sprites())) or player.get_health() == 0:
+                destroy()
+                return
 
             pygame.display.flip()
 
