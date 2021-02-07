@@ -1,9 +1,8 @@
 import os
 import pygame
-from random import randrange
+from random import randrange, choice
 from globals import load_image
-from units import Player
-
+from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet
 
 pygame.init()
 
@@ -56,7 +55,7 @@ class Button:
 
 
 class Background:
-    VELOCITY = 500
+    VELOCITY = 400
     SIZE = WIDTH, HEIGHT = 1000, 1000
 
     def __init__(self, screen: pygame.surface.Surface, static: bool = True):
@@ -74,9 +73,52 @@ class Background:
         else:
             dy = round(Background.VELOCITY * time / 1000)
             self.y = (self.y + dy) % (Background.HEIGHT + 1)
-            print("you fucked out")
             self.screen.blit(self.image, (0, -(Background.HEIGHT - self.y)))
             self.screen.blit(self.image, (0, self.y))
+
+
+class CollisionHandler:
+    def __init__(self, player: Player, enemy_group: pygame.sprite.Group, bullet_group: pygame.sprite.Group,
+                 score: Score, screen: pygame.surface.Surface):
+        self.player = player
+        self.egroup = enemy_group
+        self.bgroup = bullet_group
+        self.screen = screen
+        self.score = score
+
+    def update(self) -> bool:
+        running = True
+
+        for b in self.bgroup.sprites():
+            if b.rect.y >= self.screen.get_height():
+                b.kill()
+            elif b.get_owner() is self.player:
+                for e in self.egroup.sprites():
+                    if pygame.sprite.collide_mask(e, b):
+                        e.hurt(b)
+                        b.kill()
+                        break
+            else:
+                if pygame.sprite.collide_mask(self.player, b):
+                    self.player.hurt(b)
+                    b.kill()
+
+        for e in self.egroup.sprites():
+            if pygame.sprite.collide_mask(self.player, e):
+                running = False
+                break
+            elif e.get_health() <= 0:
+                if isinstance(e, WeakEnemy) or isinstance(e, AltWeakEnemy):
+                    self.score.add(50)
+                elif isinstance(e, StrongEnemy):
+                    self.score.add(100)
+                e.kill()
+            elif e.rect.y >= self.screen.get_height():
+                e.kill()
+
+        if self.player.get_health() <= 0:
+            running = False
+        return running
 
 
 class Game:
@@ -84,6 +126,8 @@ class Game:
     SIZE = WIDTH, HEIGHT = 1000, 1000
     SW_FONT_MAIN = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 80)  # кастомный шрифт
     SCORE_EVENT = pygame.USEREVENT + 1
+    ENEMY_APPEAR_EVENT = pygame.USEREVENT + 2
+    ENEMY_SHOOT_EVENT = pygame.USEREVENT + 3
 
     def __init__(self):
         self.screen = pygame.display.set_mode(Game.SIZE)
@@ -124,17 +168,23 @@ class Game:
 
     def main_activity(self) -> None:
         def destroy():
-            self.background.set_static(True)
             pygame.time.set_timer(Game.SCORE_EVENT, 0)
-
+            pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 0)
+            pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 0)
             for item in all_sprites.sprites():
                 item.kill()
+            self.background.set_static(True)
+            self.background.draw()
 
         running = True
         pygame.time.set_timer(Game.SCORE_EVENT, 90)
+        pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 2000)
+        pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 1250)
 
         all_sprites = pygame.sprite.Group()
         player_group = pygame.sprite.Group()
+        enemy_group = pygame.sprite.Group()
+        bullet_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
@@ -142,19 +192,41 @@ class Game:
         score = Score(self.screen)
         hp_bar = HealthBar(player, self.screen)
 
+        c_handler = CollisionHandler(player, enemy_group, bullet_group, score, self.screen)
+
         while running:
             time = self.clock.tick(Game.FPS)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit(0)
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_q:
-                    player.hp -= 1
-                    print(player.get_health())
+                elif event.type == Game.ENEMY_APPEAR_EVENT:
+                    mode = choice([1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
+                    if mode == 1:
+                        WeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                  self.screen, all_sprites, enemy_group)
+                    elif mode == 2:
+                        AltWeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                     self.screen, all_sprites, enemy_group)
+                    elif mode == 3:
+                        StrongEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                    self.screen, all_sprites, enemy_group)
+                elif event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                    Bullet(player.rect.x + player.rect.w / 2, player.rect.y, player, player_group,
+                           self.screen, all_sprites, bullet_group)
+                elif event.type == Game.ENEMY_SHOOT_EVENT:
+                    for e in enemy_group.sprites():
+                        Bullet(e.rect.x + e.rect.w / 2, e.rect.y + e.rect.h,
+                               e, enemy_group, self.screen, all_sprites, bullet_group)
+
                 elif event.type == Game.SCORE_EVENT:
                     score.add(1)
 
             all_sprites.update(time)
+
+            if not c_handler.update():
+                destroy()
+                return
 
             self.background.draw(time)
             all_sprites.draw(self.screen)
