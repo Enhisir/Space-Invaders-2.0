@@ -181,6 +181,31 @@ class Game:
 
     def main_activity(self) -> None:
         def destroy():
+            last = pygame.time.get_ticks()
+            while pygame.time.get_ticks() - last <= 1500:
+                time = self.clock.tick(Game.FPS)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        exit(0)
+                    elif event.type == Game.ENEMY_APPEAR_EVENT:
+                        mode = choice([1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
+                        if mode == 1:
+                            WeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                      self.screen, all_sprites, enemy_group)
+                        elif mode == 2:
+                            AltWeakEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                         self.screen, all_sprites, enemy_group)
+                        elif mode == 3:
+                            StrongEnemy(randrange(0, Game.WIDTH - 150), -150,
+                                        self.screen, all_sprites, enemy_group)
+                all_sprites.update(time)
+
+                self.background.draw(time)
+                all_sprites.draw(self.screen)
+
+                score.draw()
+                pygame.display.flip()
             pygame.time.set_timer(Game.SCORE_EVENT, 0)
             pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 0)
             pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 0)
@@ -233,13 +258,14 @@ class Game:
                     for e in enemy_group.sprites():
                         Bullet(e.rect.x + e.rect.w / 2, e.rect.y + e.rect.h,
                                e, enemy_group, self.screen, all_sprites, bullet_group)
-
                 elif event.type == Game.SCORE_EVENT:
                     score.add(1)
 
             all_sprites.update(time)
 
             if not c_handler.update():
+                AnimatedExplosion(player.rect.x, player.rect.y, self.screen, all_sprites, exploration_group)
+                player.kill()
                 destroy()
                 return
 
