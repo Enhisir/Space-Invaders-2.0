@@ -2,7 +2,7 @@ import os
 import pygame
 from random import randrange, choice
 from globals import load_image
-from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet
+from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet, AnimatedExplosion
 
 pygame.init()
 
@@ -78,11 +78,18 @@ class Background:
 
 
 class CollisionHandler:
-    def __init__(self, player: Player, enemy_group: pygame.sprite.Group, bullet_group: pygame.sprite.Group,
-                 score: Score, screen: pygame.surface.Surface):
+    def __init__(self, player: Player,
+                 all_sprites: pygame.sprite.Group,
+                 enemy_group: pygame.sprite.Group,
+                 bullet_group: pygame.sprite.Group,
+                 exploration_group: pygame.sprite.Group,
+                 score: Score,
+                 screen: pygame.surface.Surface):
         self.player = player
-        self.egroup = enemy_group
+        self.agroup = all_sprites
+        self.engroup = enemy_group
         self.bgroup = bullet_group
+        self.exgroup = exploration_group
         self.screen = screen
         self.score = score
 
@@ -93,7 +100,7 @@ class CollisionHandler:
             if b.rect.y >= self.screen.get_height():
                 b.kill()
             elif b.get_owner() is self.player:
-                for e in self.egroup.sprites():
+                for e in self.engroup.sprites():
                     if pygame.sprite.collide_mask(e, b):
                         e.hurt(b)
                         b.kill()
@@ -103,7 +110,7 @@ class CollisionHandler:
                     self.player.hurt(b)
                     b.kill()
 
-        for e in self.egroup.sprites():
+        for e in self.engroup.sprites():
             if pygame.sprite.collide_mask(self.player, e):
                 running = False
                 break
@@ -112,9 +119,15 @@ class CollisionHandler:
                     self.score.add(50)
                 elif isinstance(e, StrongEnemy):
                     self.score.add(100)
+                AnimatedExplosion(e.rect.x, e.rect.y, self.screen, self.agroup, self.exgroup)
                 e.kill()
             elif e.rect.y >= self.screen.get_height():
+                AnimatedExplosion(e.rect.x, e.rect.y, self.screen, self.agroup, self.exgroup)
                 e.kill()
+
+        for boom in self.exgroup.sprites():
+            if boom.rect.y >= self.screen.get_height():
+                boom.kill()
 
         if self.player.get_health() <= 0:
             running = False
@@ -185,6 +198,7 @@ class Game:
         player_group = pygame.sprite.Group()
         enemy_group = pygame.sprite.Group()
         bullet_group = pygame.sprite.Group()
+        exploration_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
@@ -192,7 +206,8 @@ class Game:
         score = Score(self.screen)
         hp_bar = HealthBar(player, self.screen)
 
-        c_handler = CollisionHandler(player, enemy_group, bullet_group, score, self.screen)
+        c_handler = CollisionHandler(player, all_sprites, enemy_group, bullet_group,
+                                     exploration_group, score, self.screen)
 
         while running:
             time = self.clock.tick(Game.FPS)
