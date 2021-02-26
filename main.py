@@ -225,6 +225,7 @@ class Game:
         enemy_group = pygame.sprite.Group()
         bullet_group = pygame.sprite.Group()
         exploration_group = pygame.sprite.Group()
+        medkit_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
