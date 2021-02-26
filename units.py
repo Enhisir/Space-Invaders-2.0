@@ -2,6 +2,39 @@ import pygame
 from globals import load_image
 
 
+class AnimatedExplosion(pygame.sprite.Sprite):
+    VELOCITY = 400
+    FPS = 120
+
+    def __init__(self, x: int, y: int, screen: pygame.surface.Surface, *groups):
+        super().__init__(*groups)
+        columns = 4
+        rows = 3
+        self.last_update = pygame.time.get_ticks()
+        self.cur_frame = 1
+        self.last_update = 0
+        self.frames = []
+        self.sheet = load_image(name="explosion.jpg", screen=screen, colorkey=-1)
+        self.rect = pygame.Rect(0, 0, self.sheet.get_width() // columns, self.sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(self.sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+
+    def update(self, time: int):
+        now = pygame.time.get_ticks()
+        self.rect = self.rect.move(0, round(AnimatedExplosion.VELOCITY * time / 1000))
+        if now - self.last_update > AnimatedExplosion.FPS:
+            self.last_update = now
+            if self.cur_frame <= len(self.frames):
+                self.cur_frame += 1
+            self.image = self.frames[self.cur_frame - 1]
+            if self.cur_frame == len(self.frames):
+                self.kill()
+
+
 class Character(pygame.sprite.Sprite):
     VELOCITY: int = None
     POWER: int = None
@@ -46,9 +79,9 @@ class Player(Character):
     def update(self, time: int) -> None:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a]:
-            self.rect = self.rect.move(-Player.VELOCITY * time / 1000, 0)
+            self.rect = self.rect.move(-round(Player.VELOCITY * time / 1000), 0)
         elif keys[pygame.K_d]:
-            self.rect = self.rect.move(Player.VELOCITY * time / 1000, 0)
+            self.rect = self.rect.move(round(Player.VELOCITY * time / 1000), 0)
 
         if self.rect.x < 10:
             self.rect.x = 10
@@ -61,7 +94,7 @@ class BaseEnemy(Character):
     POWER = 1
 
     def update(self, time: int) -> None:
-        self.rect = self.rect.move(0, BaseEnemy.VELOCITY * time / 1000)
+        self.rect = self.rect.move(0, round(BaseEnemy.VELOCITY * time / 1000))
 
 
 class WeakEnemy(BaseEnemy):
