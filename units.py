@@ -25,7 +25,7 @@ class AnimatedExplosion(pygame.sprite.Sprite):
 
     def update(self, time: int):
         now = pygame.time.get_ticks()
-        self.rect = self.rect.move(0, AnimatedExplosion.VELOCITY * time / 1000)
+        self.rect = self.rect.move(0, round(AnimatedExplosion.VELOCITY * time / 1000))
         if now - self.last_update > AnimatedExplosion.FPS:
             self.last_update = now
             if self.cur_frame <= len(self.frames):
@@ -79,9 +79,9 @@ class Player(Character):
     def update(self, time: int) -> None:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a]:
-            self.rect = self.rect.move(-Player.VELOCITY * time / 1000, 0)
+            self.rect = self.rect.move(-round(Player.VELOCITY * time / 1000), 0)
         elif keys[pygame.K_d]:
-            self.rect = self.rect.move(Player.VELOCITY * time / 1000, 0)
+            self.rect = self.rect.move(round(Player.VELOCITY * time / 1000), 0)
 
         if self.rect.x < 10:
             self.rect.x = 10
@@ -94,7 +94,7 @@ class BaseEnemy(Character):
     POWER = 1
 
     def update(self, time: int) -> None:
-        self.rect = self.rect.move(0, BaseEnemy.VELOCITY * time / 1000)
+        self.rect = self.rect.move(0, round(BaseEnemy.VELOCITY * time / 1000))
 
 
 class WeakEnemy(BaseEnemy):

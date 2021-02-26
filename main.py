@@ -200,6 +200,7 @@ class Game:
                             StrongEnemy(randrange(0, Game.WIDTH - 150), -150,
                                         self.screen, all_sprites, enemy_group)
                 all_sprites.update(time)
+                c_handler.update()
 
                 self.background.draw(time)
                 all_sprites.draw(self.screen)
