@@ -42,6 +42,44 @@ class Score:
         self.screen.blit(text, (self.x, self.y))
 
 
+class ScoreWindow:
+    def __init__(self):
+        self.size = self.width, self.height = 1000, 1000
+        self.screen = pygame.display.set_mode(self.size)
+        self.screen.blit(load_image("background.png", self.screen), (0, 0))
+        main_font = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 45)
+        text = main_font.render("SCORE", True, pygame.Color("#FFD700"))
+        self.x, self.y = self.width // 4 + self.width // 6, self.height // 4 + self.height // 20
+        self.screen.blit(text, (self.x, self.y))
+        self.file = "score.txt"
+
+        pygame.draw.rect(self.screen, pygame.Color("#FFD700"),
+                         ((self.width // 4, self.height // 4), (self.width // 2, self.height // 2)), 5)
+
+    def get_score(self, score, weakenemy, strongenemy):
+        font = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 25)
+        with open(self.file, 'a', encoding='utf-8') as file:
+            file.write(str(score) + "\n")
+        data = open(self.file, 'r', encoding='utf-8').readlines()
+        max_score = max(list(map(int, data)))
+        text1 = font.render(f"LAST SCORE: {score}", True, pygame.Color("#FFD700"))
+        text2 = font.render(f"BEST SCORE: {max_score}", True, pygame.Color("#FFD700"))
+        text3 = font.render(f"KILLED WEAK ENEMIES: {weakenemy}", True, pygame.Color("#FFD700"))
+        text4 = font.render(f"KILLED STRONG ENEMIES: {strongenemy}", True, pygame.Color("#FFD700"))
+        self.screen.blit(text1, (self.x - self.width // 9, self.y + self.height // 12))
+        self.screen.blit(text2, (self.x - self.width // 9, self.y + self.height // 12 * 2))
+        self.screen.blit(text3, (self.x - self.width // 9, self.y + self.height // 12 * 3))
+        self.screen.blit(text4, (self.x - self.width // 9, self.y + self.height // 12 * 4))
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    running = False
+            pygame.display.flip()
+
+
 class Button:
     def __init__(self, x: int, y: int, screen: pygame.surface.Surface, image_filename: str):
         # инициализация интерфейса для общения с кнопкой
@@ -92,6 +130,8 @@ class CollisionHandler:
         self.exgroup = exploration_group
         self.screen = screen
         self.score = score
+        self.count_weakenemy = 0
+        self.count_strongenemy = 0
 
     def update(self) -> bool:
         running = True
@@ -117,8 +157,10 @@ class CollisionHandler:
             elif e.get_health() <= 0:
                 if isinstance(e, WeakEnemy) or isinstance(e, AltWeakEnemy):
                     self.score.add(50)
+                    self.count_weakenemy += 1
                 elif isinstance(e, StrongEnemy):
                     self.score.add(100)
+                    self.count_strongenemy += 1
                 AnimatedExplosion(e.rect.x, e.rect.y, self.screen, self.agroup, self.exgroup)
                 e.kill()
             elif e.rect.y >= self.screen.get_height():
@@ -268,6 +310,9 @@ class Game:
                 AnimatedExplosion(player.rect.x, player.rect.y, self.screen, all_sprites, exploration_group)
                 player.kill()
                 destroy()
+                win = ScoreWindow()
+                win.get_score(c_handler.score.count, c_handler.count_weakenemy, c_handler.count_strongenemy)
+                win.run()
                 return
 
             self.background.draw(time)
