@@ -75,7 +75,10 @@ class ScoreWindow:
         running = True
         while running:
             for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit(0)
+                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                     running = False
             pygame.display.flip()
 
@@ -153,6 +156,8 @@ class CollisionHandler:
         for e in self.engroup.sprites():
             if pygame.sprite.collide_mask(self.player, e):
                 running = False
+                AnimatedExplosion(e.rect.x, e.rect.y, self.screen, self.agroup, self.exgroup)
+                e.kill()
                 break
             elif e.get_health() <= 0:
                 if isinstance(e, WeakEnemy) or isinstance(e, AltWeakEnemy):
@@ -255,7 +260,6 @@ class Game:
             for item in all_sprites.sprites():
                 item.kill()
             self.background.set_static(True)
-            self.background.draw()
 
         running = True
         pygame.time.set_timer(Game.SCORE_EVENT, 90)
