@@ -2,7 +2,7 @@ import os
 import pygame
 from random import randrange, choice
 from globals import load_image
-from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet, AnimatedExplosion
+from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet, AnimatedExplosion, MedKit
 
 pygame.init()
 
@@ -124,6 +124,7 @@ class CollisionHandler:
                  enemy_group: pygame.sprite.Group,
                  bullet_group: pygame.sprite.Group,
                  exploration_group: pygame.sprite.Group,
+                 medkit_group: pygame.sprite.Group,
                  score: Score,
                  screen: pygame.surface.Surface):
         self.player = player
@@ -131,6 +132,7 @@ class CollisionHandler:
         self.engroup = enemy_group
         self.bgroup = bullet_group
         self.exgroup = exploration_group
+        self.mgroup = medkit_group
         self.screen = screen
         self.score = score
         self.count_weakenemy = 0
@@ -176,6 +178,13 @@ class CollisionHandler:
             if boom.rect.y >= self.screen.get_height():
                 boom.kill()
 
+        for kit in self.mgroup.sprites():
+            if pygame.sprite.collide_mask(self.player, kit):
+                self.player.heal(1)
+                kit.kill()
+            elif kit.rect.y  >= self.screen.get_height():
+                kit.kill()
+
         if self.player.get_health() <= 0:
             running = False
         return running
@@ -188,6 +197,7 @@ class Game:
     SCORE_EVENT = pygame.USEREVENT + 1
     ENEMY_APPEAR_EVENT = pygame.USEREVENT + 2
     ENEMY_SHOOT_EVENT = pygame.USEREVENT + 3
+    MEDKIT_APPEAR_EVENT = pygame.USEREVENT + 4
 
     def __init__(self):
         self.screen = pygame.display.set_mode(Game.SIZE)
@@ -202,7 +212,6 @@ class Game:
         start_button = Button(400, 300, self.screen, "space_invaders_start.png")
         exit_button = Button(400, 425, self.screen, "space_invaders_exit.png")
         text = Game.SW_FONT_MAIN.render("SPACE INVADERS 2.0", True, pygame.Color("#FFD700"))
-
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -257,6 +266,7 @@ class Game:
             pygame.time.set_timer(Game.SCORE_EVENT, 0)
             pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 0)
             pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 0)
+            pygame.time.set_timer(Game.MEDKIT_APPEAR_EVENT, 0)
             for item in all_sprites.sprites():
                 item.kill()
             self.background.set_static(True)
@@ -265,12 +275,14 @@ class Game:
         pygame.time.set_timer(Game.SCORE_EVENT, 90)
         pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 2000)
         pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 1250)
+        pygame.time.set_timer(Game.MEDKIT_APPEAR_EVENT, 18000)
 
         all_sprites = pygame.sprite.Group()
         player_group = pygame.sprite.Group()
         enemy_group = pygame.sprite.Group()
         bullet_group = pygame.sprite.Group()
         exploration_group = pygame.sprite.Group()
+        medkit_group = pygame.sprite.Group()
 
         player = Player(425, 800, self.screen, all_sprites, player_group)
 
@@ -279,7 +291,7 @@ class Game:
         hp_bar = HealthBar(player, self.screen)
 
         c_handler = CollisionHandler(player, all_sprites, enemy_group, bullet_group,
-                                     exploration_group, score, self.screen)
+                                     exploration_group, medkit_group, score, self.screen)
 
         while running:
             time = self.clock.tick(Game.FPS)
@@ -307,6 +319,9 @@ class Game:
                                e, enemy_group, self.screen, all_sprites, bullet_group)
                 elif event.type == Game.SCORE_EVENT:
                     score.add(1)
+                elif event.type == Game.MEDKIT_APPEAR_EVENT and player.get_health() < 3:
+                    MedKit(randrange(0, Game.WIDTH - 150), -150,
+                           self.screen, all_sprites, medkit_group)
 
             all_sprites.update(time)
 

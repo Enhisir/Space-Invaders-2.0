@@ -73,6 +73,10 @@ class Player(Character):
         super().__init__(x, y, screen, *group)
         self.hp = 3
 
+    def heal(self, hp):
+        if self.hp < 3:
+            self.hp += hp
+
     def get_image(self, screen: pygame.surface.Surface) -> pygame.surface.Surface:
         return load_image("player.png", screen)
 
@@ -157,4 +161,20 @@ class Bullet(Character):
         return load_image("bullet.png", screen)
 
     def update(self, time: int) -> None:
-        self.rect = self.rect.move(0, self.get_velocity() * time / 1000)
+        self.rect = self.rect.move(0, round(self.get_velocity() * time / 1000))
+
+
+class MedKit(Character):
+    VELOCITY = 400
+
+    def __init__(self, x: int, y: int, screen: pygame.surface.Surface, *groups):
+        super().__init__(x, y, screen, *groups)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+    def get_image(self, screen: pygame.surface.Surface) -> pygame.surface.Surface:
+        return pygame.transform.scale(load_image("medkit.png", screen), (50, 50))
+
+    def update(self, time: int) -> None:
+        self.rect = self.rect.move(0, round(MedKit.VELOCITY * time / 1000))
