@@ -4,10 +4,16 @@ import pygame
 from typing import Tuple
 
 
+def resource_path(relative):
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative)
+    return os.path.join(relative)
+
+
 def load_image(name: str, screen: pygame.surface.Surface,
                colorkey: int or Tuple[int, int, int] or str = None) -> pygame.surface.Surface:
     pygame.font.init()
-    fullname = os.path.join("res", name)
+    fullname = resource_path(os.path.join("res", name))
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()

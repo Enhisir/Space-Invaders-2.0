@@ -1,7 +1,8 @@
 import os
+import sys
 import pygame
 from random import randrange, choice
-from globals import load_image
+from globals import load_image, resource_path
 from units import Player, WeakEnemy, AltWeakEnemy, StrongEnemy, Bullet, AnimatedExplosion, MedKit
 
 pygame.init()
@@ -27,7 +28,7 @@ class HealthBar:
 
 
 class Score:
-    font = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 45)
+    font = pygame.font.Font(resource_path(os.path.join("res", "sw_font.ttf")), 45)
 
     def __init__(self, screen: pygame.surface.Surface):
         self.screen = screen
@@ -47,7 +48,7 @@ class ScoreWindow:
         self.size = self.width, self.height = 1000, 1000
         self.screen = pygame.display.set_mode(self.size)
         self.screen.blit(load_image("background.png", self.screen), (0, 0))
-        main_font = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 45)
+        main_font = pygame.font.Font(resource_path(os.path.join("res", "sw_font.ttf")), 45)
         text = main_font.render("SCORE", True, pygame.Color("#FFD700"))
         self.x, self.y = self.width // 4 + self.width // 6, self.height // 4 + self.height // 20
         self.screen.blit(text, (self.x, self.y))
@@ -57,7 +58,7 @@ class ScoreWindow:
                          ((self.width // 4, self.height // 4), (self.width // 2, self.height // 2)), 5)
 
     def get_score(self, score, weakenemy, strongenemy):
-        font = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 25)
+        font = pygame.font.Font(resource_path(os.path.join("res", "sw_font.ttf")), 25)
         with open(self.file, 'a', encoding='utf-8') as file:
             file.write(str(score) + "\n")
         data = open(self.file, 'r', encoding='utf-8').readlines()
@@ -77,7 +78,7 @@ class ScoreWindow:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    exit(0)
+                    sys.exit(0)
                 elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                     running = False
             pygame.display.flip()
@@ -182,7 +183,7 @@ class CollisionHandler:
             if pygame.sprite.collide_mask(self.player, kit):
                 self.player.heal(1)
                 kit.kill()
-            elif kit.rect.y  >= self.screen.get_height():
+            elif kit.rect.y >= self.screen.get_height():
                 kit.kill()
 
         if self.player.get_health() <= 0:
@@ -193,7 +194,7 @@ class CollisionHandler:
 class Game:
     FPS = 120
     SIZE = WIDTH, HEIGHT = 1000, 1000
-    SW_FONT_MAIN = pygame.font.Font(os.path.join("res", "sw_font.ttf"), 80)  # кастомный шрифт
+    SW_FONT_MAIN = pygame.font.Font(resource_path(os.path.join("res", "sw_font.ttf")), 80)  # кастомный шрифт
     SCORE_EVENT = pygame.USEREVENT + 1
     ENEMY_APPEAR_EVENT = pygame.USEREVENT + 2
     ENEMY_SHOOT_EVENT = pygame.USEREVENT + 3
@@ -201,6 +202,8 @@ class Game:
 
     def __init__(self):
         self.screen = pygame.display.set_mode(Game.SIZE)
+        pygame.display.set_caption('Space Invaders 2.0')
+        pygame.display.set_icon(load_image("icon.ico", self.screen))
         self.background = Background(self.screen)
         self.clock = pygame.time.Clock()
 
@@ -243,7 +246,7 @@ class Game:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
-                        exit(0)
+                        sys.exit(0)
                     elif event.type == Game.ENEMY_APPEAR_EVENT:
                         mode = choice([1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
                         if mode == 1:
@@ -273,9 +276,9 @@ class Game:
 
         running = True
         pygame.time.set_timer(Game.SCORE_EVENT, 90)
-        pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 2000)
+        pygame.time.set_timer(Game.ENEMY_APPEAR_EVENT, 1250)
         pygame.time.set_timer(Game.ENEMY_SHOOT_EVENT, 1250)
-        pygame.time.set_timer(Game.MEDKIT_APPEAR_EVENT, 18000)
+        pygame.time.set_timer(Game.MEDKIT_APPEAR_EVENT, 10000)
 
         all_sprites = pygame.sprite.Group()
         player_group = pygame.sprite.Group()
@@ -298,7 +301,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    exit(0)
+                    sys.exit(0)
                 elif event.type == Game.ENEMY_APPEAR_EVENT:
                     mode = choice([1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
                     if mode == 1:
